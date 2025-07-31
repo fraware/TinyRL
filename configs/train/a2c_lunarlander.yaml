@@ -1,0 +1,100 @@
+# A2C Training Configuration for LunarLander-v2
+# This config demonstrates A2C training with state-of-the-art settings
+
+defaults:
+  - _self_
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+
+# Environment Configuration
+env:
+  name: "LunarLander-v2"
+  max_episode_steps: 1000
+  render_mode: null
+
+# Model Architecture
+model:
+  actor:
+    type: "mlp"
+    hidden_sizes: [128, 128]
+    activation: "relu"
+    std: 0.0  # Learnable std
+  critic:
+    type: "mlp" 
+    hidden_sizes: [128, 128]
+    activation: "relu"
+
+# A2C Algorithm Parameters
+algorithm:
+  name: "a2c"
+  learning_rate: 7e-4
+  n_steps: 5
+  gamma: 0.99
+  gae_lambda: 1.0
+  ent_coef: 0.01
+  vf_coef: 0.25
+  max_grad_norm: 0.5
+  rms_prop_eps: 1e-5
+  use_rms_prop: true
+  use_sde: false
+  sde_sample_freq: -1
+
+# Training Configuration
+training:
+  total_timesteps: 100000
+  eval_freq: 2000
+  n_eval_episodes: 10
+  save_freq: 10000
+  log_freq: 100
+  
+# Optimization
+optimizer:
+  type: "rmsprop"
+  lr: 7e-4
+  eps: 1e-5
+  alpha: 0.99
+
+# Compilation (PyTorch 2.3)
+compilation:
+  enabled: true
+  mode: "reduce-overhead"
+  fullgraph: true
+  dynamic: false
+
+# Logging
+logging:
+  wandb:
+    enabled: true
+    project: "tinyrl"
+    entity: null
+    tags: ["a2c", "lunarlander", "v1.0"]
+    group: "baseline"
+  tensorboard: false
+  csv: true
+
+# Reproducibility
+seed: 42
+deterministic: true
+
+# Output Configuration
+output:
+  dir: "./outputs/a2c_lunarlander"
+  save_model: true
+  save_replay_buffer: false
+  save_vecnormalize: true
+
+# Callbacks
+callbacks:
+  - _target_: tinyrl.callbacks.WandbCallback
+    verbose: 1
+  - _target_: tinyrl.callbacks.EvalCallback
+    eval_env: null
+    best_model_save_path: null
+    log_path: null
+    eval_freq: 2000
+    deterministic: true
+    render: false
+  - _target_: tinyrl.callbacks.CheckpointCallback
+    save_freq: 10000
+    save_path: null
+    name_prefix: "a2c_model" 

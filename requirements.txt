@@ -1,0 +1,65 @@
+# Core ML Dependencies
+torch>=2.3.0
+torchvision>=0.18.0
+numpy>=1.24.0
+scipy>=1.11.0
+
+# RL Dependencies
+gymnasium>=0.29.0
+stable-baselines3>=2.1.0
+cleanrl>=0.2.0
+
+# Training & Experiment Tracking
+wandb>=0.16.0
+hydra-core>=1.3.0
+hydra-colorlog>=1.2.0
+omegaconf>=2.3.0
+
+# Quantization & Optimization
+torchao>=0.1.0
+onnx>=1.15.0
+onnxruntime>=1.16.0
+
+# Code Quality & Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+black>=23.0.0
+isort>=5.12.0
+flake8>=6.0.0
+mypy>=1.5.0
+pylint>=2.17.0
+
+# Documentation
+mkdocs>=1.5.0
+mkdocs-material>=9.2.0
+mkdocstrings>=0.23.0
+
+# Security & Compliance
+cyclonedx-python-lib>=4.0.0
+trivy>=0.0.0
+
+# Development Tools
+pre-commit>=3.4.0
+tox>=4.6.0
+
+# Monitoring & Telemetry
+requests>=2.31.0
+
+# Optional: Atari Environments
+gymnasium[atari]>=0.29.0
+ale-py>=0.8.0
+AutoROM>=0.6.0
+
+# Optional: Continuous Control
+gymnasium[classic_control]>=0.29.0
+mujoco>=2.3.0
+
+# Optional: MCU Development
+pyserial>=3.5
+pyocd>=0.34.0
+openocd>=0.12.0
+
+# Optional: Formal Verification
+lean>=4.0.0
+z3-solver>=4.12.0 

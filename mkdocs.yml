@@ -1,0 +1,138 @@
+site_name: TinyRL Documentation
+site_description: Production-grade reinforcement learning library for microcontrollers
+site_author: TinyRL Team
+site_url: https://tinyrl.readthedocs.io/
+
+repo_name: fraware/TinyRL
+repo_url: https://github.com/fraware/TinyRL
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: indigo
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [tinyrl]
+          options:
+            show_source: true
+            show_root_heading: true
+
+nav:
+  - Home: index.md
+  - Quick Start: quickstart.md
+  - User Guide:
+    - Training: user_guide/training.md
+    - Quantization: user_guide/quantization.md
+    - Distillation: user_guide/distillation.md
+    - Pruning: user_guide/pruning.md
+    - Code Generation: user_guide/codegen.md
+    - Dispatcher: user_guide/dispatcher.md
+    - Verification: user_guide/verification.md
+  - API Reference:
+    - Models: api/models.md
+    - Training: api/training.md
+    - Quantization: api/quantization.md
+    - Distillation: api/distillation.md
+    - Pruning: api/pruning.md
+    - Code Generation: api/codegen.md
+    - Dispatcher: api/dispatcher.md
+    - Verification: api/verification.md
+    - Utils: api/utils.md
+  - Examples:
+    - CartPole Training: examples/cartpole_training.md
+    - LunarLander Training: examples/lunarlander_training.md
+    - Arduino Integration: examples/arduino_integration.md
+    - Rust Integration: examples/rust_integration.md
+  - Architecture:
+    - Overview: architecture/overview.md
+    - Data Flow: architecture/data_flow.md
+    - Memory Layout: architecture/memory_layout.md
+    - Performance: architecture/performance.md
+  - Development:
+    - Contributing: development/contributing.md
+    - Testing: development/testing.md
+    - Benchmarking: development/benchmarking.md
+    - CI/CD: development/cicd.md
+  - Reference:
+    - Configuration: reference/configuration.md
+    - CLI Reference: reference/cli.md
+    - Troubleshooting: reference/troubleshooting.md
+    - FAQ: reference/faq.md
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - footnotes
+  - meta
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - toc:
+      anchorlink: true
+      permalink: true
+      title: On this page
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/fraware/TinyRL
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/tinyrl
+  version:
+    provider: mike
+  analytics:
+    provider: google
+    property: G-XXXXXXXXXX
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js 
