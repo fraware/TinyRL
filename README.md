@@ -1,10 +1,14 @@
-# TinyRL v1.0
+# TinyRL
 
-A production-grade reinforcement learning library optimized for microcontrollers and embedded systems, featuring a  web-based UI framework for model management and deployment.
+A reinforcement learning library optimized for microcontrollers and embedded systems, featuring a  web-based UI framework for model management and deployment.
 
 ## Vision
 
 TinyRL enables deployment of trained RL agents on resource-constrained devices (≤32KB RAM, ≤128KB Flash) while maintaining performance within 2% of full-precision baselines. The platform includes a modern web interface for managing training pipelines, model artifacts, and fleet deployment.
+
+<p align="center">
+  <img src=".github/assets/TinyRL1.png" alt="TinyRL Logo" width="200"/>
+</p>
 
 ## Quick Start
 
