@@ -3,16 +3,11 @@
 Tests for critic pruning and LUT folding functionality.
 """
 
-import hashlib
-import json
 import tempfile
 from pathlib import Path
 
-import numpy as np
-import pytest
 import torch
 import torch.nn as nn
-
 from tinyrl.pruning import (
     LUTFolder,
     MagnitudePruner,
@@ -142,7 +137,9 @@ class TestPruningTrainer:
 
         # Create a simple teacher model
         self.teacher_model = nn.Sequential(
-            nn.Linear(4, 64), nn.ReLU(), nn.Linear(64, 2)  # Actor output
+            nn.Linear(4, 64),
+            nn.ReLU(),
+            nn.Linear(64, 2),  # Actor output
         )
 
     def test_trainer_creation(self):

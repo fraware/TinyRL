@@ -1,14 +1,14 @@
 """Tests for TinyRL training pipeline."""
 
 import os
+
+import numpy as np
 import pytest
 import torch
-import numpy as np
 from omegaconf import OmegaConf
-
+from tinyrl.models import A2CActor, A2CCritic, PPOActor, PPOCritic
 from tinyrl.train import Trainer
-from tinyrl.models import PPOActor, PPOCritic, A2CActor, A2CCritic
-from tinyrl.utils import set_deterministic_seed, get_model_size
+from tinyrl.utils import get_model_size, set_deterministic_seed
 
 
 class TestTrainingPipeline:
@@ -18,6 +18,7 @@ class TestTrainingPipeline:
         """Setup for each test method."""
         set_deterministic_seed(42, deterministic=True)
 
+    @pytest.mark.unit
     def test_model_creation(self):
         """Test that models can be created correctly."""
         # Test PPO models
@@ -36,6 +37,7 @@ class TestTrainingPipeline:
         assert a2c_actor.action_dim == 4
         assert a2c_critic.value_net.output_dim == 1
 
+    @pytest.mark.unit
     def test_model_forward_pass(self):
         """Test model forward passes."""
         # Test PPO actor
@@ -64,6 +66,7 @@ class TestTrainingPipeline:
         value = a2c_critic(obs)
         assert value.shape == (1, 1)
 
+    @pytest.mark.unit
     def test_model_size_calculation(self):
         """Test model size calculation."""
         ppo_actor = PPOActor(obs_dim=4, action_dim=2)
@@ -144,6 +147,7 @@ class TestTrainingPipeline:
             validate_config(invalid_config)
 
     @pytest.mark.slow
+    @pytest.mark.integration
     def test_mini_training_run(self):
         """Test a minimal training run."""
         # Create a minimal config for testing

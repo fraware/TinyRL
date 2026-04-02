@@ -1,9 +1,8 @@
 """Neural network architectures for TinyRL algorithms."""
 
+import numpy as np
 import torch
 import torch.nn as nn
-from typing import Dict, List, Tuple, Union
-import numpy as np
 
 
 class MLP(nn.Module):
@@ -13,7 +12,7 @@ class MLP(nn.Module):
         self,
         input_dim: int,
         output_dim: int,
-        hidden_sizes: List[int],
+        hidden_sizes: list[int],
         activation: str = "tanh",
         dropout: float = 0.0,
         layer_norm: bool = False,
@@ -79,9 +78,9 @@ class PPOActor(nn.Module):
         self,
         obs_dim: int,
         action_dim: int,
-        hidden_sizes: List[int] = [64, 64],
+        hidden_sizes: list[int] = [64, 64],
         activation: str = "tanh",
-        std: Union[float, torch.Tensor] = 0.0,
+        std: float | torch.Tensor = 0.0,
         log_std_init: float = -0.5,
     ):
         super().__init__()
@@ -105,7 +104,7 @@ class PPOActor(nn.Module):
         else:
             self.log_std = nn.Parameter(torch.log(std))
 
-    def forward(self, obs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, obs: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Forward pass returning action mean and log std."""
         action_mean = self.policy_net(obs)
         action_log_std = self.log_std.expand_as(action_mean)
@@ -113,7 +112,7 @@ class PPOActor(nn.Module):
 
     def get_action(
         self, obs: torch.Tensor, deterministic: bool = False
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Get action and log probability."""
         action_mean, action_log_std = self.forward(obs)
 
@@ -141,7 +140,7 @@ class PPOCritic(nn.Module):
     """Critic network for PPO algorithm."""
 
     def __init__(
-        self, obs_dim: int, hidden_sizes: List[int] = [64, 64], activation: str = "tanh"
+        self, obs_dim: int, hidden_sizes: list[int] = [64, 64], activation: str = "tanh"
     ):
         super().__init__()
 
@@ -164,9 +163,9 @@ class A2CActor(nn.Module):
         self,
         obs_dim: int,
         action_dim: int,
-        hidden_sizes: List[int] = [128, 128],
+        hidden_sizes: list[int] = [128, 128],
         activation: str = "relu",
-        std: Union[float, torch.Tensor] = 0.0,
+        std: float | torch.Tensor = 0.0,
         log_std_init: float = -0.5,
     ):
         super().__init__()
@@ -190,7 +189,7 @@ class A2CActor(nn.Module):
         else:
             self.log_std = nn.Parameter(torch.log(std))
 
-    def forward(self, obs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, obs: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Forward pass returning action mean and log std."""
         action_mean = self.policy_net(obs)
         action_log_std = self.log_std.expand_as(action_mean)
@@ -198,7 +197,7 @@ class A2CActor(nn.Module):
 
     def get_action(
         self, obs: torch.Tensor, deterministic: bool = False
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Get action and log probability."""
         action_mean, action_log_std = self.forward(obs)
 
@@ -228,7 +227,7 @@ class A2CCritic(nn.Module):
     def __init__(
         self,
         obs_dim: int,
-        hidden_sizes: List[int] = [128, 128],
+        hidden_sizes: list[int] = [128, 128],
         activation: str = "relu",
     ):
         super().__init__()
@@ -246,8 +245,8 @@ class A2CCritic(nn.Module):
 
 
 def create_actor_critic(
-    obs_dim: int, action_dim: int, algorithm: str, model_config: Dict
-) -> Tuple[nn.Module, nn.Module]:
+    obs_dim: int, action_dim: int, algorithm: str, model_config: dict
+) -> tuple[nn.Module, nn.Module]:
     """Create actor and critic networks based on algorithm and config.
 
     Args:

@@ -9,9 +9,9 @@ __version__ = "0.1.0"
 __author__ = "TinyRL Contributors"
 __license__ = "Apache-2.0"
 
+from .models import A2CActor, A2CCritic, PPOActor, PPOCritic
 from .train import Trainer, TrainingConfig
-from .models import PPOActor, PPOCritic, A2CActor, A2CCritic
-from .utils import set_deterministic_seed, get_device
+from .utils import get_device, set_deterministic_seed
 
 __all__ = [
     "Trainer",

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document specifies the data flow, tensor shapes, memory budgets, and worst-case latencies for the TinyRL pipeline.
+This document specifies the data flow, tensor shapes, memory budgets, and worst-case latencies for the TinyRL pipeline. It is **normative documentation**: cross-check behavior against the current Python package (`tinyrl/`, installed via `pip install -e .` from [`pyproject.toml`](https://github.com/fraware/TinyRL/blob/main/pyproject.toml)) because implementations evolve.
 
 ## Training Layer Data Flow
 

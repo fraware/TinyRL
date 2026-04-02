@@ -3,14 +3,14 @@
 Tests for cross-compilation and code generation functionality.
 """
 
-import json
+import shutil
+import subprocess
 import tempfile
 from pathlib import Path
 
 import pytest
 import torch
 import torch.nn as nn
-
 from tinyrl.codegen import (
     ArduinoGenerator,
     CMakeGenerator,
@@ -84,8 +84,9 @@ class TestCMakeGenerator:
 
             content = cmake_file.read_text()
             assert "cmake_minimum_required" in content
-            assert "project(TinyRL MCU)" in content
+            assert "project(TinyRL_MCU LANGUAGES C)" in content
             assert "CMAKE_C_STANDARD 11" in content
+            assert f"-Wl,--stack={self.config.max_stack_size}" in content
 
     def test_generate_makefile(self):
         """Test Makefile generation."""
@@ -447,3 +448,39 @@ class TestEdgeCases:
             )
 
             assert "report" in results
+
+
+@pytest.mark.integration
+class TestArmToolchainSmoke:
+    """Requires gcc-arm-none-eabi (installed in Linux CI)."""
+
+    @pytest.mark.skipif(
+        shutil.which("arm-none-eabi-gcc") is None,
+        reason="arm-none-eabi-gcc not on PATH",
+    )
+    def test_compiles_minimal_thumb_object(self) -> None:
+        config = CodegenConfig(
+            target_mcu="cortex-m4",
+            target_arch="armv7e-m",
+            target_float_abi="hard",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            td = Path(tmp)
+            src = td / "stub.c"
+            src.write_text("int main(void) { return 0; }\n")
+            opt = f"-{config.optimization_level}"
+            subprocess.run(
+                [
+                    "arm-none-eabi-gcc",
+                    "-c",
+                    "-mcpu=cortex-m4",
+                    "-mthumb",
+                    opt,
+                    str(src),
+                    "-o",
+                    str(td / "stub.o"),
+                ],
+                check=True,
+                capture_output=True,
+            )
+            assert (td / "stub.o").is_file()

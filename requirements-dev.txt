@@ -1,0 +1,2 @@
+# Development, docs, and CI tooling (optional extras).
+-e ".[dev,docs]"

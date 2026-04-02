@@ -8,19 +8,23 @@ TinyRL enables deployment of trained RL agents on resource-constrained devices (
 
 ## Quick Start
 
-```python
-# Train a PPO agent on CartPole
-python train.py --config configs/train/ppo_cartpole.yaml
+Install from the repo root (Python 3.10+):
 
-# Quantize the trained model
-python quantize.py trained_model.zip CartPole-v1
-
-# Generate MCU-ready code
-python codegen.py quantized_model.zip CartPole-v1
-
-# Run benchmark
-python benchmark_harness.py --model-paths quantized_model.zip
+```bash
+pip install -e .
+pip install -e ".[dev,docs]"   # optional: tooling + MkDocs
 ```
+
+Train and prepare deployment artifacts:
+
+```bash
+python train.py --config configs/train/ppo_cartpole.yaml --no-wandb
+python quantize.py outputs/ppo_cartpole/final_model.zip CartPole-v1
+python codegen.py outputs/ppo_cartpole/final_model.zip CartPole-v1
+python benchmark_harness.py --model-paths outputs/ppo_cartpole/final_model.zip
+```
+
+Full walkthrough: [Quick Start](quickstart.md). Web UI: see [README](https://github.com/fraware/TinyRL/blob/main/README.md#frontend-web-ui).
 
 ## Performance
 
@@ -94,7 +98,8 @@ graph LR
 - **GitHub**: [fraware/TinyRL](https://github.com/fraware/TinyRL)
 - **Discussions**: [GitHub Discussions](https://github.com/fraware/TinyRL/discussions)
 - **Issues**: [Bug Reports & Feature Requests](https://github.com/fraware/TinyRL/issues)
-- **Contributing**: [Development Guidelines](development/contributing.md)
+- **Contributing**: [Contributor guide](development/contributing.md) and [CONTRIBUTING.md](https://github.com/fraware/TinyRL/blob/main/CONTRIBUTING.md)
+- **Security**: [SECURITY.md](https://github.com/fraware/TinyRL/blob/main/SECURITY.md)
 
 ## License
 

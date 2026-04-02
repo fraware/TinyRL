@@ -5,20 +5,16 @@ This module implements differentiable quantization for converting actor weights
 to int8 using joint loss: policy fidelity + hardware cost.
 """
 
-import os
 import json
-import math
-from typing import Dict, List, Tuple, Optional, Any, Union
+import os
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-import onnx
-import onnxruntime as ort
 
 from .utils import get_device
 
@@ -130,13 +126,13 @@ class DifferentiableQuantizer(nn.Module):
 
     def quantize_weights(
         self, weights: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Quantize weights and return quantized weights and scales."""
         with torch.no_grad():
             quantized_weights = self.forward(weights)
             return quantized_weights, self.scales.data.clone()
 
-    def get_quantization_info(self) -> Dict[str, Any]:
+    def get_quantization_info(self) -> dict[str, Any]:
         """Get quantization information."""
         return {
             "bits": self.bits,
@@ -161,7 +157,7 @@ class HardwareCostModel:
         # MCU-specific parameters
         self.mcu_params = self._get_mcu_params()
 
-    def _get_mcu_params(self) -> Dict[str, Any]:
+    def _get_mcu_params(self) -> dict[str, Any]:
         """Get MCU-specific parameters."""
         if self.target_mcu == "cortex-m55":
             return {
@@ -238,7 +234,7 @@ class HardwareCostModel:
         input_size: int,
         hidden_size: int,
         output_size: int,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Compute hardware cost metrics."""
         flash_size = self.estimate_flash_size(model_size)
         ram_size = self.estimate_ram_size(batch_size, input_size, hidden_size)
@@ -276,9 +272,9 @@ class QuantizationTrainer:
         teacher_model: nn.Module,
         student_model: nn.Module,
         train_loader: DataLoader,
-        val_loader: Optional[DataLoader] = None,
+        val_loader: DataLoader | None = None,
         output_dir: str = "./outputs/quantization",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Train quantization with joint loss.
 
@@ -429,7 +425,11 @@ class QuantizationTrainer:
 
         # Estimate hardware costs
         hw_costs = self.hw_cost_model.compute_hardware_cost(
-            model_size_bytes, self.config.batch_size, 4, 64, 2  # CartPole default
+            model_size_bytes,
+            self.config.batch_size,
+            4,
+            64,
+            2,  # CartPole default
         )
 
         # Convert to tensor loss
@@ -471,8 +471,8 @@ class QuantizationTrainer:
         student_model: nn.Module,
         teacher_model: nn.Module,
         train_loader: DataLoader,
-        val_loader: Optional[DataLoader] = None,
-    ) -> Dict[str, Any]:
+        val_loader: DataLoader | None = None,
+    ) -> dict[str, Any]:
         """Evaluate final quantized model."""
         student_model.eval()
         teacher_model.eval()
@@ -509,7 +509,7 @@ class QuantizationTrainer:
         student_model: nn.Module,
         teacher_model: nn.Module,
         data_loader: DataLoader,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Compute evaluation metrics."""
         total_kl_div = 0.0
         total_value_mse = 0.0
@@ -556,9 +556,9 @@ class QuantizationTrainer:
 def create_quantization_report(
     teacher_reward: float,
     student_reward: float,
-    hw_costs: Dict[str, float],
+    hw_costs: dict[str, float],
     config: QuantizationConfig,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Create quantization report with hardware cost analysis.
 
@@ -607,7 +607,7 @@ def export_to_onnx_int8(
     model: nn.Module,
     quantizer: DifferentiableQuantizer,
     output_path: str,
-    input_shape: Tuple[int, ...],
+    input_shape: tuple[int, ...],
 ) -> None:
     """
     Export quantized model to ONNX int8 format.
@@ -658,9 +658,9 @@ def run_quantization_pipeline(
     teacher_model_path: str,
     student_model_path: str,
     train_loader: DataLoader,
-    val_loader: Optional[DataLoader] = None,
+    val_loader: DataLoader | None = None,
     output_dir: str = "./outputs/quantization",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Run complete quantization pipeline.
 
@@ -697,7 +697,10 @@ def run_quantization_pipeline(
     print("Exporting to ONNX int8...")
     onnx_path = os.path.join(output_dir, "quantized_model.onnx")
     export_to_onnx_int8(
-        student_model, trainer.quantizer, onnx_path, (1, 4)  # CartPole default
+        student_model,
+        trainer.quantizer,
+        onnx_path,
+        (1, 4),  # CartPole default
     )
 
     # Create final report

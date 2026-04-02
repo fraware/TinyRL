@@ -8,17 +8,11 @@ and Arduino libraries with TVM-Micro backend integration.
 
 import json
 import logging
-import os
-import subprocess
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any
 
-import numpy as np
 import torch
-
-from tinyrl.utils import get_device
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +49,7 @@ class CodegenConfig:
 
     # Rust options
     rust_target: str = "thumbv8m.main-none-eabihf"
-    rust_features: List[str] = None  # Will be set to ["fpu"]
+    rust_features: list[str] = None  # Will be set to ["fpu"]
 
     # Arduino options
     arduino_board: str = "nano33ble"
@@ -70,8 +64,23 @@ class CMakeGenerator:
 
     def generate_cmake_lists(self, output_dir: Path) -> None:
         """Generate CMakeLists.txt for the project."""
+        misra_block = ""
+        if self.config.misra_compliance:
+            misra_block = """
+# MISRA-C compliance (extra warnings)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-protector-strong")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror=implicit-function-declaration")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror=return-type")
+"""
+        fn_sections = ""
+        if self.config.function_sections:
+            fn_sections = 'set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections")\n'
+        data_sections = ""
+        if self.config.data_sections:
+            data_sections = 'set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdata-sections")\n'
+
         cmake_content = f"""cmake_minimum_required(VERSION 3.16)
-project(TinyRL MCU)
+project(TinyRL_MCU LANGUAGES C)
 
 # Set C standard
 set(CMAKE_C_STANDARD 11)
@@ -81,29 +90,15 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_FLAGS "${{CMAKE_C_FLAGS}} -{self.config.optimization_level}")
 set(CMAKE_C_FLAGS "${{CMAKE_C_FLAGS}} -march={self.config.target_arch}")
 set(CMAKE_C_FLAGS "${{CMAKE_C_FLAGS}} -mfloat-abi={self.config.target_float_abi}")
-
-# MISRA-C compliance
-if({str(self.config.misra_compliance).lower()})
-    set(CMAKE_C_FLAGS "${{CMAKE_C_FLAGS}} -fstack-protector-strong")
-    set(CMAKE_C_FLAGS "${{CMAKE_C_FLAGS}} -Werror=implicit-function-declaration")
-    set(CMAKE_C_FLAGS "${{CMAKE_C_FLAGS}} -Werror=return-type")
-endif()
-
+{misra_block}
 # Function and data sections for size optimization
-if({str(self.config.function_sections).lower()})
-    set(CMAKE_C_FLAGS "${{CMAKE_C_FLAGS}} -ffunction-sections")
-endif()
-
-if({str(self.config.data_sections).lower()})
-    set(CMAKE_C_FLAGS "${{CMAKE_C_FLAGS}} -fdata-sections")
-endif()
-
+{fn_sections}{data_sections}
 # Linker flags
 set(CMAKE_EXE_LINKER_FLAGS "${{CMAKE_EXE_LINKER_FLAGS}} -Wl,--gc-sections")
 set(CMAKE_EXE_LINKER_FLAGS "${{CMAKE_EXE_LINKER_FLAGS}} -Wl,--print-memory-usage")
 
-# Memory constraints
-set(CMAKE_EXE_LINKER_FLAGS "${{CMAKE_EXE_LINKER_FLAGS}} -Wl,--stack=${{self.config.max_stack_size}}")
+# Memory constraints (stack size is a numeric linker flag)
+set(CMAKE_EXE_LINKER_FLAGS "${{CMAKE_EXE_LINKER_FLAGS}} -Wl,--stack={self.config.max_stack_size}")
 
 # Include directories
 include_directories(include)
@@ -135,6 +130,20 @@ add_custom_command(TARGET tinyrl_mcu POST_BUILD
 
     def generate_makefile(self, output_dir: Path) -> None:
         """Generate Makefile for direct compilation."""
+        misra_mk = ""
+        if self.config.misra_compliance:
+            misra_mk = """
+# MISRA-C compliance (extra flags)
+CFLAGS += -fstack-protector-strong
+CFLAGS += -Werror=format-security
+"""
+        fn_mk = ""
+        if self.config.function_sections:
+            fn_mk = "CFLAGS += -ffunction-sections\n"
+        data_mk = ""
+        if self.config.data_sections:
+            data_mk = "CFLAGS += -fdata-sections\n"
+
         makefile_content = f"""# TinyRL MCU Makefile
 CC = arm-none-eabi-gcc
 AR = arm-none-eabi-ar
@@ -150,16 +159,9 @@ FLOAT_ABI = {self.config.target_float_abi}
 # Compiler flags
 CFLAGS = -{self.config.optimization_level} -g
 CFLAGS += -march=$(ARCH) -mfloat-abi=$(FLOAT_ABI)
-CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -Wall -Wextra -Werror=implicit-function-declaration
 CFLAGS += -Werror=return-type -Wstack-usage=4096
-
-# MISRA-C compliance
-if({str(self.config.misra_compliance).lower()})
-    CFLAGS += -fstack-protector-strong
-    CFLAGS += -Werror=format-security
-endif()
-
+{fn_mk}{data_mk}{misra_mk}
 # Linker flags
 LDFLAGS = -Wl,--gc-sections -Wl,--print-memory-usage
 LDFLAGS += -Wl,--stack={self.config.max_stack_size}
@@ -253,7 +255,7 @@ cortex-m-rt = "0.7"
 
     def generate_lib_rs(self, output_dir: Path) -> None:
         """Generate lib.rs with core functionality."""
-        lib_content = f"""#![no_std]
+        lib_content = """#![no_std]
 #![feature(asm_const)]
 
 //! TinyRL Runtime for Microcontrollers
@@ -269,45 +271,45 @@ use cortex_m::register::fpu;
 
 /// Panic handler for no_std environment
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {{
-    loop {{
+fn panic(_info: &PanicInfo) -> ! {
+    loop {
         asm::wfe();
-    }}
-}}
+    }
+}
 
 /// Initialize the runtime
-pub fn init() {{
+pub fn init() {
     #[cfg(feature = "fpu")]
-    {{
+    {
         // Enable FPU
         fpu::cpacr::write(fpu::cpacr::CP10::FULL_ACCESS);
         fpu::cpacr::write(fpu::cpacr::CP11::FULL_ACCESS);
         
         // Enable FPU context switching
         fpu::fpexc::write(fpu::fpexc::EX::ENABLED);
-    }}
-}}
+    }
+}
 
 /// TinyRL policy structure
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
-pub struct TinyRLPolicy {{
+pub struct TinyRLPolicy {
     pub weights: *const i8,
     pub scales: *const f32,
     pub lut: *const i8,
     pub input_dim: u16,
     pub hidden_dim: u16,
     pub output_dim: u16,
-}}
+}
 
 /// Inference result
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
-pub struct InferenceResult {{
+pub struct InferenceResult {
     pub action: i32,
     pub confidence: f32,
     pub latency_us: u32,
-}}
+}
 
 /// Initialize policy from flash memory
 #[no_mangle]
@@ -318,16 +320,16 @@ pub extern "C" fn tinyrl_init_policy(
     input_dim: u16,
     hidden_dim: u16,
     output_dim: u16,
-) -> TinyRLPolicy {{
-    TinyRLPolicy {{
+) -> TinyRLPolicy {
+    TinyRLPolicy {
         weights: weights_ptr,
         scales: scales_ptr,
         lut: lut_ptr,
         input_dim,
         hidden_dim,
         output_dim,
-    }}
-}}
+    }
+}
 
 /// Run inference on observation
 #[no_mangle]
@@ -335,20 +337,20 @@ pub extern "C" fn tinyrl_inference(
     policy: &TinyRLPolicy,
     observation: *const f32,
     result: *mut InferenceResult,
-) -> i32 {{
+) -> i32 {
     // TODO: Implement actual inference
     // This is a placeholder for the real implementation
     
-    unsafe {{
+    unsafe {
         let obs_slice = core::slice::from_raw_parts(observation, policy.input_dim as usize);
         
         // Simple linear transformation (placeholder)
         let mut hidden = [0.0f32; 64];
-        for i in 0..policy.hidden_dim as usize {{
-            for j in 0..policy.input_dim as usize {{
+        for i in 0..policy.hidden_dim as usize {
+            for j in 0..policy.input_dim as usize {
                 hidden[i] += obs_slice[j] * 0.1; // Placeholder weight
-            }}
-        }}
+            }
+        }
         
         // Simple argmax (placeholder)
         let action = hidden.iter().enumerate()
@@ -359,32 +361,32 @@ pub extern "C" fn tinyrl_inference(
         let confidence = 0.8; // Placeholder
         let latency_us = 100; // Placeholder
         
-        *result = InferenceResult {{
+        *result = InferenceResult {
             action,
             confidence,
             latency_us,
-        }};
-    }}
+        };
+    }
     
     0 // Success
-}}
+}
 
 /// Get policy memory usage
 #[no_mangle]
-pub extern "C" fn tinyrl_get_memory_usage(policy: &TinyRLPolicy) -> u32 {{
+pub extern "C" fn tinyrl_get_memory_usage(policy: &TinyRLPolicy) -> u32 {
     let weights_size = policy.input_dim as u32 * policy.hidden_dim as u32;
     let scales_size = policy.hidden_dim as u32 * 4; // f32 = 4 bytes
     let lut_size = 256; // Fixed LUT size
     
     weights_size + scales_size + lut_size as u32
-}}
+}
 
 #[cfg(test)]
-mod tests {{
+mod tests {
     use super::*;
     
     #[test]
-    fn test_policy_creation() {{
+    fn test_policy_creation() {
         let weights = [0i8; 256];
         let scales = [1.0f32; 64];
         let lut = [0i8; 256];
@@ -401,8 +403,8 @@ mod tests {{
         assert_eq!(policy.input_dim, 4);
         assert_eq!(policy.hidden_dim, 64);
         assert_eq!(policy.output_dim, 2);
-    }}
-}}
+    }
+}
 """
 
         lib_file = output_dir / "src" / "lib.rs"
@@ -419,7 +421,7 @@ class ArduinoGenerator:
 
     def generate_library_properties(self, output_dir: Path) -> None:
         """Generate library.properties for Arduino library."""
-        properties_content = f"""name=TinyRL
+        properties_content = """name=TinyRL
 version=1.0.0
 author=TinyRL Team <team@tinyrl.dev>
 maintainer=TinyRL Team <team@tinyrl.dev>
@@ -438,31 +440,31 @@ includes=TinyRL.h
 
     def generate_header(self, output_dir: Path) -> None:
         """Generate TinyRL.h header file."""
-        header_content = f"""#ifndef TINYRL_H
+        header_content = """#ifndef TINYRL_H
 #define TINYRL_H
 
 #include <Arduino.h>
 
 #ifdef __cplusplus
-extern "C" {{
+extern "C" {
 #endif
 
 // TinyRL policy structure
-typedef struct {{
+typedef struct {
     const int8_t* weights;
     const float* scales;
     const int8_t* lut;
     uint16_t input_dim;
     uint16_t hidden_dim;
     uint16_t output_dim;
-}} TinyRLPolicy_t;
+} TinyRLPolicy_t;
 
 // Inference result
-typedef struct {{
+typedef struct {
     int32_t action;
     float confidence;
     uint32_t latency_us;
-}} TinyRLResult_t;
+} TinyRLResult_t;
 
 // Initialize policy from flash memory
 TinyRLPolicy_t tinyrl_init_policy(
@@ -485,10 +487,10 @@ int32_t tinyrl_inference(
 uint32_t tinyrl_get_memory_usage(const TinyRLPolicy_t* policy);
 
 #ifdef __cplusplus
-}}
+}
 
 // C++ wrapper class
-class TinyRL {{
+class TinyRL {
 public:
     TinyRL();
     ~TinyRL();
@@ -500,7 +502,7 @@ public:
 private:
     TinyRLPolicy_t policy_;
     bool initialized_;
-}};
+};
 
 #endif
 
@@ -514,7 +516,7 @@ private:
 
     def generate_implementation(self, output_dir: Path) -> None:
         """Generate TinyRL.cpp implementation file."""
-        impl_content = f"""#include "TinyRL.h"
+        impl_content = """#include "TinyRL.h"
 #include <math.h>
 
 // C implementation
@@ -525,7 +527,7 @@ TinyRLPolicy_t tinyrl_init_policy(
     uint16_t input_dim,
     uint16_t hidden_dim,
     uint16_t output_dim
-) {{
+) {
     TinyRLPolicy_t policy;
     policy.weights = weights_ptr;
     policy.scales = scales_ptr;
@@ -534,84 +536,84 @@ TinyRLPolicy_t tinyrl_init_policy(
     policy.hidden_dim = hidden_dim;
     policy.output_dim = output_dim;
     return policy;
-}}
+}
 
 int32_t tinyrl_inference(
     const TinyRLPolicy_t* policy,
     const float* observation,
     TinyRLResult_t* result
-) {{
-    if (!policy || !observation || !result) {{
+) {
+    if (!policy || !observation || !result) {
         return -1; // Error
-    }}
+    }
     
     // TODO: Implement actual inference
     // This is a placeholder for the real implementation
     
     // Simple linear transformation (placeholder)
     float hidden[64];
-    for (uint16_t i = 0; i < policy->hidden_dim; i++) {{
+    for (uint16_t i = 0; i < policy->hidden_dim; i++) {
         hidden[i] = 0.0f;
-        for (uint16_t j = 0; j < policy->input_dim; j++) {{
+        for (uint16_t j = 0; j < policy->input_dim; j++) {
             hidden[i] += observation[j] * 0.1f; // Placeholder weight
-        }}
-    }}
+        }
+    }
     
     // Simple argmax (placeholder)
     int32_t action = 0;
     float max_val = hidden[0];
-    for (uint16_t i = 1; i < policy->output_dim; i++) {{
-        if (hidden[i] > max_val) {{
+    for (uint16_t i = 1; i < policy->output_dim; i++) {
+        if (hidden[i] > max_val) {
             max_val = hidden[i];
             action = i;
-        }}
-    }}
+        }
+    }
     
     result->action = action;
     result->confidence = 0.8f; // Placeholder
     result->latency_us = 100; // Placeholder
     
     return 0; // Success
-}}
+}
 
-uint32_t tinyrl_get_memory_usage(const TinyRLPolicy_t* policy) {{
-    if (!policy) {{
+uint32_t tinyrl_get_memory_usage(const TinyRLPolicy_t* policy) {
+    if (!policy) {
         return 0;
-    }}
+    }
     
     uint32_t weights_size = policy->input_dim * policy->hidden_dim;
     uint32_t scales_size = policy->hidden_dim * 4; // float = 4 bytes
     uint32_t lut_size = 256; // Fixed LUT size
     
     return weights_size + scales_size + lut_size;
-}}
+}
 
 #ifdef __cplusplus
 
 // C++ implementation
-TinyRL::TinyRL() : initialized_(false) {{
-}}
+TinyRL::TinyRL() : initialized_(false) {
+}
 
-TinyRL::~TinyRL() {{
-}}
+TinyRL::~TinyRL() {
+}
 
-bool TinyRL::init(const TinyRLPolicy_t& policy) {{
+bool TinyRL::init(const TinyRLPolicy_t& policy) {
     policy_ = policy;
     initialized_ = true;
     return true;
-}}
+}
 
-bool TinyRL::inference(const float* observation, TinyRLResult_t& result) {{
-    if (!initialized_) {{
+bool TinyRL::inference(const float* observation, TinyRLResult_t& result) {
+    if (!initialized_) {
         return false;
-    }}
+    }
     
     return tinyrl_inference(&policy_, observation, &result) == 0;
-}}
+}
 
-uint32_t TinyRL::getMemoryUsage() const {{
+uint32_t TinyRL::getMemoryUsage() const {
     return tinyrl_get_memory_usage(&policy_);
-}}
+}
 
 #endif
 """
@@ -687,7 +689,7 @@ class CodegenTrainer:
 
     def generate_all(
         self, model: torch.nn.Module, output_dir: str = "./outputs/codegen"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate all target formats."""
 
         output_path = Path(output_dir)
@@ -708,7 +710,7 @@ class CodegenTrainer:
         logger.info(f"Code generation completed. Results saved to: {output_dir}")
         return results
 
-    def _generate_cmake(self, output_dir: Path) -> Dict[str, str]:
+    def _generate_cmake(self, output_dir: Path) -> dict[str, str]:
         """Generate CMake project."""
         cmake_dir = output_dir / "cmake"
         cmake_dir.mkdir(exist_ok=True)
@@ -721,7 +723,7 @@ class CodegenTrainer:
             "makefile": str(cmake_dir / "Makefile"),
         }
 
-    def _generate_rust(self, output_dir: Path) -> Dict[str, str]:
+    def _generate_rust(self, output_dir: Path) -> dict[str, str]:
         """Generate Rust crate."""
         rust_dir = output_dir / "rust"
         rust_dir.mkdir(exist_ok=True)
@@ -734,7 +736,7 @@ class CodegenTrainer:
             "lib_rs": str(rust_dir / "src" / "lib.rs"),
         }
 
-    def _generate_arduino(self, output_dir: Path) -> Dict[str, str]:
+    def _generate_arduino(self, output_dir: Path) -> dict[str, str]:
         """Generate Arduino library."""
         arduino_dir = output_dir / "arduino"
         arduino_dir.mkdir(exist_ok=True)
@@ -749,7 +751,7 @@ class CodegenTrainer:
             "implementation": str(arduino_dir / "src" / "TinyRL.cpp"),
         }
 
-    def _generate_tvm(self, model: torch.nn.Module, output_dir: Path) -> Dict[str, str]:
+    def _generate_tvm(self, model: torch.nn.Module, output_dir: Path) -> dict[str, str]:
         """Generate TVM model."""
         tvm_dir = output_dir / "tvm"
         tvm_dir.mkdir(exist_ok=True)
@@ -760,8 +762,8 @@ class CodegenTrainer:
 
 
 def create_codegen_report(
-    results: Dict[str, Any], config: CodegenConfig
-) -> Dict[str, Any]:
+    results: dict[str, Any], config: CodegenConfig
+) -> dict[str, Any]:
     """Create comprehensive code generation report."""
 
     # Check if all targets were generated successfully
@@ -790,7 +792,7 @@ def run_codegen_pipeline(
     config: CodegenConfig,
     model: torch.nn.Module,
     output_dir: str = "./outputs/codegen",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run complete code generation pipeline."""
 
     # Initialize trainer

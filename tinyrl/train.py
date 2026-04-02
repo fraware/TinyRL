@@ -1,27 +1,28 @@
 """Main training pipeline for TinyRL."""
 
+import logging
 import os
 import time
-import logging
-from typing import Optional, Tuple, Any
 from dataclasses import dataclass
+from typing import Any
 
-import torch
 import gymnasium as gym
-from stable_baselines3 import PPO, A2C
-from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
-from stable_baselines3.common.callbacks import CallbackList
-import wandb
 import hydra
+import torch
+import wandb
 from omegaconf import DictConfig, OmegaConf
-from .utils import set_deterministic_seed, get_device, validate_config
+from stable_baselines3 import A2C, PPO
+from stable_baselines3.common.callbacks import CallbackList
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
 from .callbacks import (
-    WandbCallback,
-    EvalCallback,
     CheckpointCallback,
+    EvalCallback,
     KnowledgeDistillationCallback,
     PruningHintCallback,
+    WandbCallback,
 )
+from .utils import get_device, set_deterministic_seed, validate_config
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ class TrainingConfig:
     total_timesteps: int
     seed: int = 42
     deterministic: bool = True
-    device: Optional[str] = None
+    device: str | None = None
     output_dir: str = "./outputs"
     save_model: bool = True
     save_replay_buffer: bool = False
@@ -272,7 +273,7 @@ class Trainer:
             OmegaConf.save(self.config, f)
         logger.info(f"Saved config to {config_path}")
 
-    def evaluate(self, n_eval_episodes: int = 10) -> Tuple[float, float]:
+    def evaluate(self, n_eval_episodes: int = 10) -> tuple[float, float]:
         """Evaluate the trained model.
 
         Args:

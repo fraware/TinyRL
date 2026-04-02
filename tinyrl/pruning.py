@@ -12,7 +12,7 @@ import logging
 import struct
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Any
+from typing import Any
 
 import numpy as np
 import torch
@@ -74,7 +74,7 @@ class MagnitudePruner:
 
     def prune_model(
         self, model: nn.Module, threshold: float
-    ) -> Tuple[nn.Module, Dict[str, float]]:
+    ) -> tuple[nn.Module, dict[str, float]]:
         """Prune model weights below threshold."""
         pruned_model = model
         pruning_stats = {
@@ -117,9 +117,9 @@ class LUTFolder:
     def generate_lut(
         self,
         critic_model: nn.Module,
-        observation_range: Tuple[float, float] = (-10.0, 10.0),
+        observation_range: tuple[float, float] = (-10.0, 10.0),
         num_samples: int = 10000,
-    ) -> Dict[str, np.ndarray]:
+    ) -> dict[str, np.ndarray]:
         """Generate LUT for critic value estimates."""
 
         # Generate sample observations
@@ -176,7 +176,7 @@ class LUTFolder:
             "monotonic": self.config.monotonic_guarantee,
         }
 
-    def compute_lut_hash(self, lut_data: Dict[str, np.ndarray]) -> str:
+    def compute_lut_hash(self, lut_data: dict[str, np.ndarray]) -> str:
         """Compute SHA-256 hash of LUT for regression testing."""
         # Serialize LUT data
         serialized = json.dumps(
@@ -194,7 +194,7 @@ class LUTFolder:
         # Compute hash
         return hashlib.sha256(serialized.encode()).hexdigest()
 
-    def validate_monotonicity(self, lut_data: Dict[str, np.ndarray]) -> bool:
+    def validate_monotonicity(self, lut_data: dict[str, np.ndarray]) -> bool:
         """Validate that LUT preserves monotonicity."""
         if not self.config.monotonic_guarantee:
             return True
@@ -218,9 +218,9 @@ class PruningTrainer:
         self,
         teacher_model: nn.Module,
         train_loader: DataLoader,
-        val_loader: Optional[DataLoader] = None,
+        val_loader: DataLoader | None = None,
         output_dir: str = "./outputs/pruning",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Train pruned model with LUT folding."""
 
         # Create output directory
@@ -297,9 +297,9 @@ class PruningTrainer:
         self,
         teacher_model: nn.Module,
         pruned_critic: nn.Module,
-        lut_data: Dict[str, np.ndarray],
-        val_loader: Optional[DataLoader],
-    ) -> Dict[str, float]:
+        lut_data: dict[str, np.ndarray],
+        val_loader: DataLoader | None,
+    ) -> dict[str, float]:
         """Evaluate performance of pruned model vs baseline."""
 
         if val_loader is None:
@@ -346,7 +346,7 @@ class PruningTrainer:
         }
 
     def _predict_with_lut(
-        self, observations: torch.Tensor, lut_data: Dict[str, np.ndarray]
+        self, observations: torch.Tensor, lut_data: dict[str, np.ndarray]
     ) -> np.ndarray:
         """Predict using LUT-based critic."""
         # Simplified LUT lookup - in practice, this would be optimized for MCU
@@ -369,7 +369,7 @@ class PruningTrainer:
         values = lut_values[indices] * lut_scales[indices]
         return values
 
-    def _save_lut_binary(self, lut_data: Dict[str, np.ndarray], path: Path) -> None:
+    def _save_lut_binary(self, lut_data: dict[str, np.ndarray], path: Path) -> None:
         """Save LUT as binary file for MCU deployment."""
         # Pack LUT data into binary format
         lut_values = lut_data["lut_values"].astype(np.int8)
@@ -389,11 +389,11 @@ class PruningTrainer:
 
 
 def create_pruning_report(
-    pruning_stats: Dict[str, float],
-    evaluation_results: Dict[str, float],
+    pruning_stats: dict[str, float],
+    evaluation_results: dict[str, float],
     lut_hash: str,
     config: PruningConfig,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create comprehensive pruning report."""
 
     # Check if requirements are met
@@ -433,9 +433,9 @@ def run_pruning_pipeline(
     config: PruningConfig,
     teacher_model_path: str,
     train_loader: DataLoader,
-    val_loader: Optional[DataLoader] = None,
+    val_loader: DataLoader | None = None,
     output_dir: str = "./outputs/pruning",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run complete pruning pipeline."""
 
     # Load teacher model

@@ -8,7 +8,7 @@ with circular DMA buffer example for HAL (Low-level driver).
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, Any
+from typing import Any
 
 import numpy as np
 
@@ -142,7 +142,7 @@ class DMAController:
         """Check if DMA is busy."""
         return self.is_transferring
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get DMA statistics."""
         return {
             "transfer_count": self.transfer_count,
@@ -246,7 +246,7 @@ class RAMDispatcher:
             oldest_slice = min(self.weight_slices.keys())
             self.evict(oldest_slice)
 
-    def get_memory_usage(self) -> Dict[str, int]:
+    def get_memory_usage(self) -> dict[str, int]:
         """Get current memory usage."""
         total_slices = len(self.weight_slices)
         used_memory = total_slices * self.slice_size
@@ -259,7 +259,7 @@ class RAMDispatcher:
             "active_slices": total_slices,
         }
 
-    def get_performance_stats(self) -> Dict[str, Any]:
+    def get_performance_stats(self) -> dict[str, Any]:
         """Get performance statistics."""
         return {
             "load_count": self.load_count,
@@ -325,8 +325,8 @@ class HALInterface:
 
 
 def create_dispatcher_report(
-    performance_stats: Dict[str, Any], config: DispatcherConfig
-) -> Dict[str, Any]:
+    performance_stats: dict[str, Any], config: DispatcherConfig
+) -> dict[str, Any]:
     """Create dispatcher performance report."""
     memory_usage = performance_stats["memory_usage"]
     dma_stats = performance_stats["dma_stats"]
@@ -359,7 +359,7 @@ def create_dispatcher_report(
 
 def run_dispatcher_benchmark(
     config: DispatcherConfig, model_size: int, num_evals: int = 1000
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run dispatcher benchmark."""
     logger.info("Starting dispatcher benchmark")
 

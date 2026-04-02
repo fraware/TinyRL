@@ -1,0 +1,3 @@
+# Code generation
+
+::: tinyrl.codegen

@@ -14,9 +14,9 @@ Thank you for your interest in contributing to TinyRL! This document provides gu
 
 2. **Install dependencies**
    ```bash
-   pip install -r requirements.txt
-   pip install -r requirements-dev.txt  # Development dependencies
+   pip install -e ".[dev,docs]"
    ```
+   (Optional: `requirements.txt` / `requirements-dev.txt` mirror editable installs for tools that only read flat files.)
 
 3. **Install pre-commit hooks**
    ```bash
@@ -25,7 +25,7 @@ Thank you for your interest in contributing to TinyRL! This document provides gu
 
 4. **Run tests**
    ```bash
-   pytest tests/
+   pytest tests/ -m "not slow"
    ```
 
 ## Development Workflow
@@ -45,7 +45,7 @@ Thank you for your interest in contributing to TinyRL! This document provides gu
 #### Python Code Style
 - Follow [PEP 8](https://pep8.org/) style guidelines
 - Use type hints for all function parameters and return values
-- Maximum line length: 88 characters (Black formatter)
+- Maximum line length: 88 characters ([Ruff](https://docs.astral.sh/ruff/) formatter, aligned with former Black defaults)
 - Use f-strings for string formatting
 
 #### Example:
@@ -105,7 +105,8 @@ bool tinyrl_quantize_policy(
 
 #### Unit Tests
 - Write tests for all new functionality
-- Aim for >95% code coverage
+- Increase coverage over time; use `pytest tests/ --cov=tinyrl` to measure
+- Prefer markers `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.slow` where appropriate
 - Use descriptive test names
 - Test both success and failure cases
 
@@ -151,6 +152,21 @@ def test_quantize_weights_invalid_bits():
 - Update API documentation for any changes
 - Include usage examples
 - Document breaking changes
+
+### Web UI and Chromatic
+
+The `ui/` app uses **Next.js 14** (App Router). Use **Node.js 20+**. Prefer reproducible installs:
+
+```bash
+cd ui
+npm ci
+npm run lint
+npm run type-check
+npm test
+npm run build
+```
+
+Visual regression via Chromatic requires a project token: set `CHROMATIC_PROJECT_TOKEN` (for example in GitHub Actions secrets) before running `npm run chromatic`. Without the secret, skip that script.
 
 ### 6. Performance Requirements
 
@@ -198,31 +214,29 @@ bool tinyrl_validate_input(
 ## Development Tools
 
 ### Pre-commit Hooks
-The following hooks are automatically run on commit:
-- `black`: Code formatting
-- `isort`: Import sorting
-- `flake8`: Linting
-- `mypy`: Type checking
-- `pytest`: Unit tests
+Configured in [`.pre-commit-config.yaml`](.pre-commit-config.yaml). On commit you get:
+- **Ruff**: lint (with safe fixes) and format on `tinyrl/` and `tests/`
+- **Generic hooks**: trailing whitespace, EOF fixer, YAML check, large-file guard
+
+Run `mypy`, full `pytest`, Bandit, and `pip-audit` locally or rely on GitHub Actions (see `.github/workflows/ci-python.yml`).
 
 ### Manual Checks
 ```bash
-# Format code
-black tinyrl/
-
-# Sort imports
-isort tinyrl/
-
-# Run linter
-flake8 tinyrl/
+# Lint and format (same as CI lint job)
+ruff check tinyrl tests
+ruff format tinyrl tests
 
 # Type checking
 mypy tinyrl/
 
-# Run tests
-pytest tests/ -v --cov=tinyrl
+# Tests (fast, matches default CI)
+pytest tests/ -v -m "not slow" --cov=tinyrl --cov-report=term-missing
 
-# Security scan
+# Security
+bandit -r tinyrl/ -c pyproject.toml
+pip-audit
+
+# Filesystem scan (install Trivy separately)
 trivy fs .
 ```
 
@@ -271,14 +285,22 @@ Closes #123
 ## Architecture Guidelines
 
 ### Module Structure
+Python package layout (flat modules under `tinyrl/`):
+
 ```
 tinyrl/
 ├── __init__.py
-├── training/          # Training pipeline
-├── quantization/      # Quantization engine
-├── runtime/          # MCU runtime
-├── verification/     # Formal verification
-└── utils/           # Shared utilities
+├── train.py           # Trainer, training config
+├── models.py          # Policy / value networks
+├── quantization.py
+├── distillation.py
+├── pruning.py
+├── codegen.py
+├── dispatcher.py
+├── verification.py
+├── callbacks.py
+├── monitoring.py
+└── utils.py
 ```
 
 ### Interface Design

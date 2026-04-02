@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -185,7 +185,7 @@ class PolicyVerifier:
 
         return LeanTheorem("latency_bounds", statement, proof)
 
-    def create_smt_queries(self) -> List[SMTQuery]:
+    def create_smt_queries(self) -> list[SMTQuery]:
         """Create SMT queries for numerical verification."""
         queries = []
 
@@ -233,7 +233,7 @@ class PolicyVerifier:
 
         return queries
 
-    def verify_theorems(self) -> Dict[str, bool]:
+    def verify_theorems(self) -> dict[str, bool]:
         """Verify all theorems using Lean."""
         results = {}
 
@@ -280,7 +280,7 @@ import Mathlib.Data.Int.Basic
 
         return results
 
-    def verify_smt_queries(self) -> Dict[str, bool]:
+    def verify_smt_queries(self) -> dict[str, bool]:
         """Verify SMT queries using Z3."""
         results = {}
 
@@ -420,7 +420,7 @@ end TinyRLVerification
 
     def run_verification_pipeline(
         self, output_dir: str = "./outputs/verification"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Run complete verification pipeline."""
         logger.info("Starting formal verification pipeline")
 
@@ -473,10 +473,10 @@ end TinyRLVerification
 
 
 def create_verification_report(
-    theorem_results: Dict[str, bool],
-    smt_results: Dict[str, bool],
+    theorem_results: dict[str, bool],
+    smt_results: dict[str, bool],
     config: VerificationConfig,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create verification report."""
     all_passed = all(theorem_results.values()) and all(smt_results.values())
 
@@ -506,7 +506,7 @@ def create_verification_report(
 def run_verification_pipeline(
     config: VerificationConfig,
     output_dir: str = "./outputs/verification",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run formal verification pipeline."""
     verifier = PolicyVerifier(config)
     return verifier.run_verification_pipeline(output_dir)

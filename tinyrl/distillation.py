@@ -6,22 +6,22 @@ feed-forward approximators using DAgger-KD hybrid approach to curb covariate
 shift.
 """
 
-import os
 import json
+import os
 import pickle
-from typing import Dict, List, Any
 from dataclasses import dataclass
+from typing import Any
 
+import gymnasium as gym
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
-import gymnasium as gym
-from stable_baselines3 import PPO, A2C
+from stable_baselines3 import A2C, PPO
 from stable_baselines3.common.evaluation import evaluate_policy
+from torch.utils.data import DataLoader, Dataset
 
-from .models import PPOActor, A2CActor
+from .models import A2CActor, PPOActor
 from .utils import get_device
 
 
@@ -51,13 +51,13 @@ class DistillationConfig:
     reward_delta_threshold: float = 0.005  # < 0.5% vs teacher
 
     # OOD verification
-    ood_tasks: List[str] = None  # Will be set to different env variants
+    ood_tasks: list[str] = None  # Will be set to different env variants
 
 
 class TrajectoryDataset(Dataset):
     """Dataset for storing teacher trajectories."""
 
-    def __init__(self, trajectories: List[Dict[str, np.ndarray]]):
+    def __init__(self, trajectories: list[dict[str, np.ndarray]]):
         self.trajectories = trajectories
         self._flatten_data()
 
@@ -123,7 +123,7 @@ class KnowledgeDistillationLoss(nn.Module):
         teacher_values: torch.Tensor,
         rewards: torch.Tensor,
         actions: torch.Tensor,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         """
         Compute combined distillation loss.
 
@@ -190,7 +190,7 @@ class OfflineDatasetAggregator:
 
     def generate_trajectories(
         self, teacher_model_path: str, env_name: str, n_trajectories: int = None
-    ) -> List[Dict[str, np.ndarray]]:
+    ) -> list[dict[str, np.ndarray]]:
         """
         Generate diverse trajectories from teacher policy.
 
@@ -265,7 +265,7 @@ class OfflineDatasetAggregator:
 
         return env
 
-    def _collect_trajectory(self, teacher_model, env: gym.Env) -> Dict[str, np.ndarray]:
+    def _collect_trajectory(self, teacher_model, env: gym.Env) -> dict[str, np.ndarray]:
         """Collect single trajectory from teacher."""
         obs, _ = env.reset()
         done = False
@@ -322,7 +322,7 @@ class OfflineDatasetAggregator:
         }
 
     def save_dataset(
-        self, trajectories: List[Dict[str, np.ndarray]], output_path: str
+        self, trajectories: list[dict[str, np.ndarray]], output_path: str
     ) -> None:
         """Save dataset to disk."""
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -342,7 +342,7 @@ class OfflineDatasetAggregator:
         with open(metadata_path, "w") as f:
             json.dump(metadata, f, indent=2)
 
-    def load_dataset(self, dataset_path: str) -> List[Dict[str, np.ndarray]]:
+    def load_dataset(self, dataset_path: str) -> list[dict[str, np.ndarray]]:
         """Load dataset from disk."""
         with open(dataset_path, "rb") as f:
             trajectories = pickle.load(f)
@@ -369,7 +369,7 @@ class DistillationTrainer:
         train_dataset: TrajectoryDataset,
         val_dataset: TrajectoryDataset = None,
         output_dir: str = "./outputs/distillation",
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Train student model using knowledge distillation.
 
@@ -559,7 +559,7 @@ class DistillationTrainer:
         teacher_model: nn.Module,
         train_loader: DataLoader,
         val_loader: DataLoader = None,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Evaluate final model performance."""
         student_model.eval()
         teacher_model.eval()
@@ -586,7 +586,7 @@ class DistillationTrainer:
         student_model: nn.Module,
         teacher_model: nn.Module,
         data_loader: DataLoader,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Compute evaluation metrics."""
         total_kl_div = 0.0
         total_value_mse = 0.0
@@ -632,7 +632,7 @@ class DistillationTrainer:
 
 def create_distillation_report(
     teacher_reward: float, student_reward: float, reward_delta_threshold: float = 0.005
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Create distillation report with reward delta analysis.
 
@@ -665,7 +665,7 @@ def run_distillation_pipeline(
     teacher_model_path: str,
     env_name: str,
     output_dir: str = "./outputs/distillation",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Run complete distillation pipeline.
 

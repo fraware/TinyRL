@@ -11,7 +11,8 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Any
+
 import numpy as np
 import requests
 
@@ -40,9 +41,9 @@ class MonitoringConfig:
     ota_rollback_threshold: float = 0.1  # 10% performance drop
 
     # Alerting
-    alert_webhook_url: Optional[str] = None
-    alert_email: Optional[str] = None
-    alert_slack_channel: Optional[str] = None
+    alert_webhook_url: str | None = None
+    alert_email: str | None = None
+    alert_slack_channel: str | None = None
 
     # Storage
     telemetry_db_path: str = "./data/telemetry.db"
@@ -62,7 +63,7 @@ class TelemetryData:
     memory_usage_kb: int
     inference_count: int
     error_count: int = 0
-    environment_data: Dict[str, Any] = field(default_factory=dict)
+    environment_data: dict[str, Any] = field(default_factory=dict)
 
 
 class RewardDriftDetector:
@@ -89,7 +90,7 @@ class RewardDriftDetector:
             entry for entry in self.reward_history if entry["timestamp"] > cutoff
         ]
 
-    def detect_drift(self) -> Optional[Dict[str, Any]]:
+    def detect_drift(self) -> dict[str, Any] | None:
         """Detect reward drift and return alert if detected."""
         if not self.baseline_reward or len(self.reward_history) < 10:
             return None
@@ -144,7 +145,7 @@ class AnomalyDetector:
             self.power_history = self.power_history[-500:]
             self.error_rate_history = self.error_rate_history[-500:]
 
-    def detect_anomalies(self) -> List[Dict[str, Any]]:
+    def detect_anomalies(self) -> list[dict[str, Any]]:
         """Detect performance anomalies."""
         anomalies = []
 
@@ -214,7 +215,7 @@ class OTAManager:
         self.update_history = []
         self.rollback_count = 0
 
-    def check_for_updates(self, current_version: str) -> Optional[Dict[str, Any]]:
+    def check_for_updates(self, current_version: str) -> dict[str, Any] | None:
         """Check for available model updates."""
         try:
             response = requests.get(
@@ -236,7 +237,7 @@ class OTAManager:
 
         return None
 
-    def download_model(self, model_url: str, version: str) -> Optional[str]:
+    def download_model(self, model_url: str, version: str) -> str | None:
         """Download new model version."""
         try:
             cache_path = Path(self.config.model_cache_path)
@@ -304,7 +305,7 @@ class OTAManager:
             logger.error(f"Failed to deploy model: {e}")
             return False
 
-    def rollback_if_needed(self, performance_metrics: Dict[str, float]) -> bool:
+    def rollback_if_needed(self, performance_metrics: dict[str, float]) -> bool:
         """Rollback if performance degradation detected."""
         if not self.update_history:
             return False
@@ -413,7 +414,7 @@ class AlertManager:
         self.config = config
         self.alert_history = []
 
-    def send_alert(self, alert_data: Dict[str, Any]) -> bool:
+    def send_alert(self, alert_data: dict[str, Any]) -> bool:
         """Send alert through configured channels."""
         self.alert_history.append({**alert_data, "timestamp": datetime.now()})
 
@@ -433,7 +434,7 @@ class AlertManager:
 
         return success
 
-    def _send_webhook_alert(self, alert_data: Dict[str, Any]) -> bool:
+    def _send_webhook_alert(self, alert_data: dict[str, Any]) -> bool:
         """Send alert via webhook."""
         try:
             response = requests.post(
@@ -444,13 +445,13 @@ class AlertManager:
             logger.error(f"Webhook alert failed: {e}")
             return False
 
-    def _send_email_alert(self, alert_data: Dict[str, Any]) -> bool:
+    def _send_email_alert(self, alert_data: dict[str, Any]) -> bool:
         """Send alert via email."""
         # Simplified email implementation
         logger.info(f"Email alert: {alert_data}")
         return True
 
-    def _send_slack_alert(self, alert_data: Dict[str, Any]) -> bool:
+    def _send_slack_alert(self, alert_data: dict[str, Any]) -> bool:
         """Send alert via Slack."""
         # Simplified Slack implementation
         logger.info(f"Slack alert: {alert_data}")
@@ -519,7 +520,7 @@ class MonitoringDashboard:
                 else:
                     logger.error("Model deployment failed")
 
-    def get_dashboard_metrics(self) -> Dict[str, Any]:
+    def get_dashboard_metrics(self) -> dict[str, Any]:
         """Get current dashboard metrics."""
         return {
             "telemetry_buffer_size": len(self.telemetry_collector.telemetry_buffer),
@@ -534,7 +535,7 @@ class MonitoringDashboard:
 
 def create_monitoring_report(
     dashboard: MonitoringDashboard, config: MonitoringConfig
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create monitoring report."""
     metrics = dashboard.get_dashboard_metrics()
 
@@ -557,7 +558,7 @@ def run_monitoring_pipeline(
     device_id: str,
     model_version: str,
     output_dir: str = "./outputs/monitoring",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run complete monitoring pipeline."""
     logger.info("Starting monitoring pipeline")
 

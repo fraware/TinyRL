@@ -1,9 +1,9 @@
 """Callbacks for TinyRL training pipeline."""
 
+import logging
 import os
 import time
-import logging
-from typing import Optional
+
 import numpy as np
 import wandb
 from stable_baselines3.common.callbacks import BaseCallback
@@ -63,9 +63,9 @@ class EvalCallback(BaseCallback):
 
     def __init__(
         self,
-        eval_env: Optional[VecEnv] = None,
-        best_model_save_path: Optional[str] = None,
-        log_path: Optional[str] = None,
+        eval_env: VecEnv | None = None,
+        best_model_save_path: str | None = None,
+        log_path: str | None = None,
         eval_freq: int = 1000,
         n_eval_episodes: int = 5,
         deterministic: bool = True,
@@ -146,7 +146,7 @@ class CheckpointCallback(BaseCallback):
     def __init__(
         self,
         save_freq: int = 10000,
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
         name_prefix: str = "model",
         verbose: int = 0,
     ):

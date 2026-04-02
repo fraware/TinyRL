@@ -7,19 +7,17 @@ knowledge distillation loss, and reward delta reporting.
 
 import os
 import tempfile
-import json
-import pytest
-import numpy as np
-import torch
-import torch.nn as nn
 from unittest.mock import Mock, patch
 
+import numpy as np
+import pytest
+import torch
 from tinyrl.distillation import (
     DistillationConfig,
-    TrajectoryDataset,
+    DistillationTrainer,
     KnowledgeDistillationLoss,
     OfflineDatasetAggregator,
-    DistillationTrainer,
+    TrajectoryDataset,
     create_distillation_report,
     run_distillation_pipeline,
 )

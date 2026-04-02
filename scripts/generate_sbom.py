@@ -8,8 +8,7 @@ Generate Software Bill of Materials (SBOM) in CycloneDX format for TinyRL.
 import argparse
 import subprocess
 import sys
-from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 try:
     from cyclonedx.model.bom import Bom
@@ -26,35 +25,35 @@ except ImportError:
 
 
 def get_python_dependencies() -> List[Dict[str, Any]]:
-    """Get Python dependencies from requirements.txt."""
-    dependencies = []
-
-    requirements_file = Path("requirements.txt")
-    if not requirements_file.exists():
+    """Get Python dependencies from the active environment (pip freeze)."""
+    dependencies: List[Dict[str, Any]] = []
+    try:
+        out = subprocess.check_output(
+            [sys.executable, "-m", "pip", "freeze"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
         return dependencies
 
-    with open(requirements_file, "r") as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith("#"):
-                # Parse package spec
-                if "==" in line:
-                    name, version = line.split("==", 1)
-                elif ">=" in line:
-                    name, version = line.split(">=", 1)
-                elif "<=" in line:
-                    name, version = line.split("<=", 1)
-                else:
-                    name = line
-                    version = "unknown"
-
-                dependencies.append(
-                    {
-                        "name": name.strip(),
-                        "version": version.strip(),
-                        "type": "library",
-                    }
-                )
+    for line in out.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("-e "):
+            name = line.split("=", 1)[0].removeprefix("-e ").strip()
+            version = "editable"
+        elif "==" in line:
+            name, version = line.split("==", 1)
+        elif " @ " in line:
+            name, _, rest = line.partition(" @ ")
+            version = rest.strip()
+        else:
+            name, version = line, "unknown"
+        name = name.split("[", 1)[0].strip()
+        dependencies.append(
+            {"name": name, "version": version.strip(), "type": "library"}
+        )
 
     return dependencies
 
@@ -240,7 +239,7 @@ def main():
         save_sbom(bom, args.output_file, args.output_format)
 
         if args.verbose:
-            print(f"SBOM generated successfully:")
+            print("SBOM generated successfully:")
             print(f"  - Project: {args.project_name} v{args.project_version}")
             print(f"  - Format: {args.output_format}")
             print(f"  - Output: {args.output_file}")

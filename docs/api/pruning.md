@@ -1,0 +1,3 @@
+# Pruning
+
+::: tinyrl.pruning

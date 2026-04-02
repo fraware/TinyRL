@@ -1,299 +1,119 @@
 # Quick Start Guide
 
-Get up and running with TinyRL in minutes. This guide will walk you through training, quantizing, and deploying a reinforcement learning agent on a microcontroller.
+Train, compress, and prepare MCU-oriented artifacts with TinyRL. Run commands from the **repository root** unless noted.
 
 ## Installation
 
 ### Prerequisites
 
-- Python 3.9+
-- Git
-- ARM GCC toolchain (for MCU deployment)
+- **Python 3.10+** (see `requires-python` in [`pyproject.toml`](https://github.com/fraware/TinyRL/blob/main/pyproject.toml))
+- **Git**
+- **Node.js 20+** (for the `ui/` app only)
+- **ARM GCC** (`arm-none-eabi-gcc`) only when you compile generated C/C++ for a real MCU (optional for Python-only workflows)
 
 ### Install TinyRL
 
 ```bash
-# Clone the repository
 git clone https://github.com/fraware/TinyRL.git
 cd TinyRL
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+source .venv/bin/activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Runtime (training stack)
+pip install -e .
+
+# Developers: lint, tests, docs, security tooling
+pip install -e ".[dev,docs]"
 ```
 
-## Your First TinyRL Agent
+Flat requirements files are optional mirrors:
 
-### Step 1: Train a PPO Agent
+- `requirements.txt` → editable install of the package (`-e .`)
+- `requirements-dev.txt` → `pip install -e ".[dev,docs]"`
 
-Train a PPO agent on the CartPole environment:
+Optional extras: `atari`, `mujoco`, `embedded`, `verify` (see `pyproject.toml`).
+
+## Your First Agent (CartPole)
+
+### Step 1: Train
 
 ```bash
-# Train PPO agent on CartPole
-python train.py --config configs/train/ppo_cartpole.yaml
-
-# This will create:
-# - outputs/ppo_cartpole/final_model.zip (trained model)
-# - outputs/ppo_cartpole/logs/ (training logs)
-# - outputs/ppo_cartpole/checkpoints/ (model checkpoints)
+python train.py --config configs/train/ppo_cartpole.yaml --no-wandb
 ```
 
-### Step 2: Knowledge Distillation
+Artifacts go under the output directory from your YAML (often `outputs/...`). Use `--timesteps`, `--seed`, and `--no-wandb` as needed.
 
-Distill the trained model to create a more compact representation:
+### Step 2: Distillation (optional)
 
 ```bash
-# Run knowledge distillation
 python distill.py outputs/ppo_cartpole/final_model.zip CartPole-v1
-
-# This creates a distilled model with:
-# - Reduced model size
-# - Preserved performance
-# - Better generalization
 ```
 
 ### Step 3: Quantization
 
-Convert the model to int8 for MCU deployment:
-
 ```bash
-# Quantize the model
 python quantize.py outputs/ppo_cartpole/final_model.zip CartPole-v1
-
-# This produces:
-# - Int8 weights and scales
-# - Hardware cost analysis
-# - Performance validation
 ```
 
-### Step 4: Critic Pruning
-
-Eliminate the runtime critic using LUT folding:
+### Step 4: Pruning
 
 ```bash
-# Prune critic and generate LUT
 python prune.py outputs/ppo_cartpole/final_model.zip CartPole-v1
-
-# This creates:
-# - Pruned actor network
-# - Lookup table for critic values
-# - Memory-optimized representation
 ```
 
-### Step 5: Code Generation
-
-Generate MCU-ready code:
+### Step 5: Code generation
 
 ```bash
-# Generate code for multiple platforms
 python codegen.py outputs/ppo_cartpole/final_model.zip CartPole-v1
-
-# This produces:
-# - C/C++ code with CMSIS-NN
-# - Rust crate (no_std)
-# - Arduino library
-# - TVM-Micro integration
 ```
 
-### Step 6: Formal Verification
+This emits CMake/Make sketches, Rust/Arduino scaffolding, and related metadata. You still need a vendor toolchain to produce a flashable binary.
 
-Verify the quantized model preserves reward ordering:
+### Step 6: Verification (optional)
 
 ```bash
-# Run formal verification
 python verify_cli.py --epsilon 0.05
-
-# This validates:
-# - Reward preservation within ε
-# - Memory bounds compliance
-# - Latency guarantees
 ```
 
-### Step 7: Benchmark
+For Z3-oriented helpers: `pip install -e ".[verify]"`.
 
-Measure performance and power consumption:
+### Step 7: Benchmarks (optional)
 
 ```bash
-# Run comprehensive benchmarks
 python benchmark_harness.py --model-paths outputs/ppo_cartpole/final_model.zip
-
-# This measures:
-# - Inference latency
-# - Power consumption
-# - Reward performance
-# - Memory usage
 ```
-
-## Expected Results
-
-After completing the pipeline, you should see:
-
-| Metric | Target | Typical Result |
-|--------|--------|----------------|
-| **Reward Preservation** | ≥98% | 98.5% |
-| **Memory Usage** | ≤32KB | 2.1KB |
-| **Inference Latency** | ≤5ms | 0.8ms |
-| **Power Consumption** | ≤50mW | 15mW |
 
 ## Configuration
 
-### Training Configuration
+Training hyperparameters live in **`configs/train/*.yaml`**. The root `train.py` loads that YAML with [OmegaConf](https://omegaconf.readthedocs.io/) and applies **explicit CLI flags** (for example `--timesteps`, `--seed`, `--no-wandb`, `--output-dir`), not Hydra-style `key=value` suffixes on the same command line.
 
-Edit `configs/train/ppo_cartpole.yaml` to customize training:
+Quantization, pruning, and codegen settings are primarily controlled through their Python APIs and CLIs; use `python quantize.py --help` (and similar) for options.
 
-```yaml
-# Training parameters
-training:
-  total_timesteps: 50000
-  eval_freq: 1000
-  save_freq: 5000
-
-# Model architecture
-model:
-  actor:
-    hidden_sizes: [64, 64]
-    activation: "tanh"
-  critic:
-    hidden_sizes: [64, 64]
-    activation: "tanh"
-
-# Algorithm parameters
-algorithm:
-  learning_rate: 3e-4
-  n_steps: 2048
-  batch_size: 64
-  n_epochs: 10
-```
-
-### Quantization Configuration
-
-Customize quantization in `configs/quantization.yaml`:
-
-```yaml
-# Quantization settings
-bits: 8
-scheme: "symmetric"
-per_channel: true
-
-# Hardware constraints
-max_flash_size: 32768  # 32KB
-max_ram_size: 4096     # 4KB
-target_latency_ms: 5.0
-
-# Loss weights
-policy_fidelity_weight: 0.7
-hardware_cost_weight: 0.3
-```
-
-## Advanced Usage
-
-### Multi-Environment Training
-
-Train on multiple environments:
+## Web UI
 
 ```bash
-# Train on CartPole
-python train.py --config configs/train/ppo_cartpole.yaml
-
-# Train on LunarLander
-python train.py --config configs/train/a2c_lunarlander.yaml
-
-# Compare results
-python benchmark_harness.py \
-  --model-paths outputs/ppo_cartpole/final_model.zip \
-  --model-paths outputs/a2c_lunarlander/final_model.zip
+cd ui
+npm ci
+npm run dev
 ```
 
-### Custom Model Architectures
-
-Define custom model architectures:
-
-```python
-from tinyrl.models import PPOActor, PPOCritic
-
-# Custom actor network
-actor = PPOActor(
-    obs_dim=4,
-    action_dim=2,
-    hidden_sizes=[128, 128],  # Larger network
-    activation="relu",         # Different activation
-    std=0.0                   # Learnable std
-)
-
-# Custom critic network
-critic = PPOCritic(
-    obs_dim=4,
-    hidden_sizes=[128, 128],
-    activation="relu"
-)
-```
-
-### Hardware-Specific Optimization
-
-Optimize for specific MCU targets:
+## Building the docs site
 
 ```bash
-# Optimize for Cortex-M55
-python codegen.py model.zip env \
-  --target-mcu cortex-m55 \
-  --target-arch armv8-m.main \
-  --max-stack-size 4096 \
-  --max-heap-size 28672
-
-# Optimize for Arduino Nano 33 BLE
-python codegen.py model.zip env \
-  --arduino-board nano33ble \
-  --arduino-library-name TinyRL
+pip install -e ".[docs]"
+mkdocs serve
 ```
 
 ## Troubleshooting
 
-### Common Issues
+- **Import errors** — `pip install -e .` from the repo root.
+- **Wrong paths** — Run `train.py` and other root scripts from the repository root so `configs/` resolves.
+- **UI build** — Node 20+, `npm ci` in `ui/`.
+- **CI expectations** — See [CI/CD](development/cicd.md) and [Testing](development/testing.md).
 
-**Training doesn't converge:**
-- Increase `total_timesteps`
-- Adjust learning rate
-- Check environment configuration
+## Next steps
 
-**Quantization degrades performance:**
-- Increase `policy_fidelity_weight`
-- Use asymmetric quantization
-- Adjust temperature in distillation
-
-**Code generation fails:**
-- Verify ARM toolchain installation
-- Check memory constraints
-- Ensure model compatibility
-
-**Verification fails:**
-- Increase epsilon tolerance
-- Check model bounds
-- Verify SMT solver installation
-
-### Getting Help
-
-- **Documentation**: Check the [User Guide](user_guide/) for detailed tutorials
-- **Examples**: See [Examples](examples/) for real-world use cases
-- **Issues**: Report bugs on [GitHub Issues](https://github.com/fraware/TinyRL/issues)
-- **Discussions**: Ask questions on [GitHub Discussions](https://github.com/fraware/TinyRL/discussions)
-
-## Next Steps
-
-Congratulations! You've successfully trained and deployed a TinyRL agent. Here's what you can explore next:
-
-1. **Try Different Environments**: Experiment with LunarLander, Acrobot, or custom environments
-2. **Optimize for Your Hardware**: Customize quantization and code generation for your specific MCU
-3. **Explore Advanced Features**: Dive into formal verification, power profiling, and custom architectures
-4. **Contribute**: Help improve TinyRL by contributing code, documentation, or examples
-
----
-
-<div align="center">
-
-**Ready for more advanced features?**  
-[User Guide →](user_guide/training.md)
-
-</div> 
+- [User guide: Training](user_guide/training.md)
+- [API reference](api/models.md)

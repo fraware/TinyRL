@@ -1,11 +1,12 @@
 """Utility functions for TinyRL training pipeline."""
 
+import logging
 import os
 import random
+from typing import Any
+
 import numpy as np
 import torch
-from typing import Optional, Dict, Any
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ def set_deterministic_seed(seed: int, deterministic: bool = True) -> None:
     logger.info(f"Set deterministic seed: {seed}")
 
 
-def get_device(device: Optional[str] = None) -> torch.device:
+def get_device(device: str | None = None) -> torch.device:
     """Get the best available device for training.
 
     Args:
@@ -51,7 +52,7 @@ def get_device(device: Optional[str] = None) -> torch.device:
     return torch.device(device)
 
 
-def get_model_size(model: torch.nn.Module) -> Dict[str, int]:
+def get_model_size(model: torch.nn.Module) -> dict[str, int]:
     """Calculate model size in parameters and bytes.
 
     Args:
@@ -94,7 +95,7 @@ def create_env(env_name: str, **kwargs) -> Any:
     return env
 
 
-def validate_config(config: Dict[str, Any]) -> bool:
+def validate_config(config: dict[str, Any]) -> bool:
     """Validate training configuration.
 
     Args:
@@ -141,7 +142,7 @@ def setup_logging(log_level: str = "INFO") -> None:
     )
 
 
-def save_config(config: Dict[str, Any], path: str) -> None:
+def save_config(config: dict[str, Any], path: str) -> None:
     """Save configuration to file.
 
     Args:
@@ -158,7 +159,7 @@ def save_config(config: Dict[str, Any], path: str) -> None:
     logger.info(f"Saved config to {path}")
 
 
-def load_config(path: str) -> Dict[str, Any]:
+def load_config(path: str) -> dict[str, Any]:
     """Load configuration from file.
 
     Args:
@@ -169,7 +170,7 @@ def load_config(path: str) -> Dict[str, Any]:
     """
     import yaml
 
-    with open(path, "r") as f:
+    with open(path) as f:
         config = yaml.safe_load(f)
 
     return config
