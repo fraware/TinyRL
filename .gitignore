@@ -1,0 +1,81 @@
+# Dependencies
+node_modules/
+ui/node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Type checkers / linters
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pytype/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Docs build output
+site/
+docs/_build/
+
+# Logs / local outputs
+*.log
+outputs/
+test_output/
+
+# Environment files (keep .env.example if you add one)
+.env
+.env.local
+.env.*.local
+
+# Next.js
+ui/.next/
+ui/out/
+
+# Playwright
+ui/test-results/
+ui/playwright-report/
+ui/playwright/.cache/
+
+# Misc
+*.bak
+.cache/

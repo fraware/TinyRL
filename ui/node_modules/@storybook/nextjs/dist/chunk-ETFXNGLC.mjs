@@ -1,3 +1,0 @@
-var defaultLoader=({src,width,quality=75})=>{let missingValues=[];if(src||missingValues.push("src"),width||missingValues.push("width"),missingValues.length>0)throw new Error(`Next Image Optimization requires ${missingValues.join(", ")} to be provided. Make sure you pass them as props to the \`next/image\` component. Received: ${JSON.stringify({src,width,quality})}`);let url=new URL(src,window.location.href);return !url.searchParams.has("w")&&!url.searchParams.has("q")&&(url.searchParams.set("w",width.toString()),url.searchParams.set("q",quality.toString())),!src.startsWith("http://")&&!src.startsWith("https://")?url.toString().slice(url.origin.length):url.toString()};
-
-export { defaultLoader };
