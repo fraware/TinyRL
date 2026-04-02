@@ -105,7 +105,7 @@
     "lighthouse": "^11.4.0",
     "msw": "^2.0.0",
     "prettier": "^3.1.0",
-    "prettier-plugin-tailwindcss": "^0.5.0",
+    "prettier-plugin-tailwindcss": "^0.7.2",
     "storybook": "^7.6.0"
   },
   "engines": {
