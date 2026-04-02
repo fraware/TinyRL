@@ -178,7 +178,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev,docs]"
       - run: mkdocs build --site-dir docs/_build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: documentation
           path: docs/_build
@@ -240,7 +240,7 @@ jobs:
         with:
           name: documentation
           path: docs/_build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-artifacts
           path: |
